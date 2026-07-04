@@ -1,0 +1,9 @@
+[Unit]
+Description=Regenerate palette period timers as the sun drifts
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/palette regen
+
+# Reference template. `palette install` writes this unit with the resolved
+# absolute path to the palette binary; this copy is for manual installation.

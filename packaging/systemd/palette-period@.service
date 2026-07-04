@@ -1,0 +1,9 @@
+[Unit]
+Description=Apply the palette for period %I
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/palette apply-period "%I"
+
+# Reference template. `palette install` writes this unit with the resolved
+# absolute path to the palette binary; this copy is for manual installation.

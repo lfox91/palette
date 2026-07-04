@@ -1,0 +1,39 @@
+{
+  "name": "@leafox/palette",
+  "version": "0.1.0",
+  "description": "Sun-aware Ptyxis palette generator and scheduler — generates perceptually-tuned terminal color schemes and cycles them by position relative to the sun.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "palette": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "packaging/systemd",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
+    "build:binary": "bun build src/cli.ts --compile --target=bun-linux-x64-baseline --outfile=dist/palette",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "check": "biome check --write src",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0"
+  },
+  "optionalDependencies": {
+    "node-llama-cpp": "^3.14.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.7",
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

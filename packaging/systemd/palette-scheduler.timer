@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic palette timer regeneration
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
