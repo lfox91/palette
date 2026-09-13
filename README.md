@@ -17,6 +17,24 @@ as they drift through the year.
 - **Light/dark just works.** Palettes are dual-scheme and follow your desktop's
   light/dark preference via the freedesktop portal.
 
+## What it does to your system
+
+`palette` is not a passive linter; it writes to your machine. Concretely:
+
+- **Writes one Ptyxis palette file** (`Sundial.palette`) into your Ptyxis
+  palettes directory (native or Flatpak) and selects it for your default
+  profile. It does not touch your other palettes, your shell, or your editor.
+- **Installs systemd *user* units** — one timer per enabled period plus a
+  6-hourly scheduler — and enables the scheduler. `palette setup` installs and
+  removes them; nothing is installed without a confirmation prompt.
+- **Reads your approximate location** to compute solar times, via GNOME Night
+  Light coordinates → GeoClue → a timezone-based fallback city. It is used
+  locally and is not transmitted by default.
+- **Writes config** under `~/.config/palette/` (`config.json`, `schedule.json`,
+  `last_regen`, `models/`).
+
+To remove everything: `palette setup` → *uninstall*.
+
 ## Install
 
 **npm (recommended):**
@@ -95,11 +113,49 @@ palette regen                 refresh the period timers as the sun drifts
 State lives in `~/.config/palette/` (`config.json`, `schedule.json`,
 `last_regen`, `models/`) so the non-interactive systemd path has a stable,
 machine-readable substrate. You never hand-edit it — the `palette config`
-screen owns it.
+screen owns it. An unreadable config file is moved aside as
+`*.corrupt-<timestamp>` rather than silently reset.
 
 Local review never bundles a model: `palette config` will scan for a GGUF you
 already have (llama.cpp / Ollama / LM Studio) or fetch a small, permissively
 licensed one with explicit consent.
+
+## Privacy
+
+- **Offline by default.** Generation and validation are local code. There is no
+  telemetry, no account, and no phone-home.
+- **Location stays on your machine.** Solar timing needs latitude/longitude;
+  those are read locally and used only to compute sunrise/sunset times.
+- **Remote review is opt-in and sends only the palette.** If you configure a
+  `remote` reviewer and supply an API key, the generated palette, the mood you
+  chose, and the review instructions are sent to that provider's API. No file
+  paths, hostnames, or coordinates are included. The default is `none`; use
+  `local` to keep everything on-device.
+- **API keys are read from the environment**, never written to config. Config
+  stores only the *name* of the environment variable to read.
+- **Model downloads are explicit.** Pulling a suggested model fetches a GGUF
+  from Hugging Face; check its source and license before use.
+
+## Risks & things to know
+
+- **Pre-1.0.** The interface, config schema, and the plugin/benchmark model may
+  change between releases.
+- **Community plugins are code you chose to run.** Official plugins run
+  in-process; community plugins are pinned by version and content hash and run
+  out-of-process. Out-of-process is isolation from the CLI's memory, not a
+  sandbox. Only opt in to plugins you trust.
+- **Remote review hands your palette to a third party.** See *Privacy*.
+- **It changes your Ptyxis palette selection.** It only manages `Sundial`, and
+  leaves your other palettes alone, but your default profile's selection will
+  change.
+- **Solar scheduling depends on location.** The timezone fallback is
+  approximate, and polar day/night has no solar anchor, so those periods fall
+  back to clock behavior.
+- **This gates legibility, not taste.** Contrast and coherence are enforced;
+  whether a palette looks good to you is still your call.
+
+Security-relevant details and how to report a vulnerability are in
+[`SECURITY.md`](SECURITY.md).
 
 ## Trust & provenance
 
@@ -150,8 +206,17 @@ bun test                   # unit tests
 bun run check              # biome lint + format
 bun run typecheck          # tsc --noEmit
 bun run build:binary       # compiled baseline binary → dist/palette
+bun run scan:secrets       # scan the tree and git history for secrets
+bun run audit              # dependency vulnerability audit
 ```
+
+## How this was made
+
+This software was built with **The Framework**, a personal agent-orchestration
+and systems-engineering workflow. The framework is construction method, not part
+of the product: it is not distributed with `palette` and is deliberately kept
+out of the repository (see `.gitignore`).
 
 ## License
 
-MIT
+MIT — see [`LICENSE`](LICENSE).

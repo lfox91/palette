@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Secret scan
+        run: bun run scan:secrets
+
+      - name: Dependency audit
+        run: bun run audit
+
+      - name: Lint + typecheck + test
+        run: |
+          bun run check
+          bun run typecheck
+          bun test

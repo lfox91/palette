@@ -17,10 +17,13 @@
     "dev": "bun run src/cli.ts",
     "build": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
     "build:binary": "bun build src/cli.ts --compile --target=bun-linux-x64-baseline --outfile=dist/palette",
-    "lint": "biome lint src test",
-    "format": "biome format --write src test",
-    "check": "biome check --write src test",
+    "lint": "biome lint src test scripts",
+    "format": "biome format --write src test scripts",
+    "check": "biome check --write src test scripts",
     "proofs": "bun run src/proof-cli.ts",
+    "scan:secrets": "bun run scripts/scan-secrets.ts",
+    "audit": "bun audit",
+    "security": "bun run scan:secrets && bun run audit && bun run typecheck",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
@@ -34,6 +37,9 @@
     "@biomejs/biome": "^2.4.7",
     "@types/bun": "latest",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "tar": "^7.5.22"
   },
   "engines": {
     "node": ">=20"

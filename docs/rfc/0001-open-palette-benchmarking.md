@@ -3,7 +3,7 @@
 - **Status:** Draft / open for discussion
 - **Date:** 2026-09-12
 - **Author:** [@lfox91](https://github.com/lfox91)
-- **Base commit:** `938c059`
+- **Base commit:** `2a2e2396`
 - **Discussion:** open an issue titled `RFC 0001` or a PR against this file.
 
 > This is a starting point, not a governing document. If someone has already

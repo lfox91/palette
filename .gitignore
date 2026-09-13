@@ -4,3 +4,17 @@ dist/
 .DS_Store
 .env
 .env.local
+
+# Local agent / framework scaffolding.
+# These are how the project was built, not part of it, and are deliberately
+# not committed. The framework is mentioned in the README as construction method.
+.tfw/
+.claude/
+.agents/
+.opencode/
+.cursor/
+.serena/
+.windsurf/
+AGENTS.md
+CLAUDE.md
+scratchpad/
