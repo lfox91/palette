@@ -17,6 +17,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import * as p from '@clack/prompts';
+import { ANSI_HUE, ANSI_HUE_MAX_DEVIATION, ANSI_ROLES } from './ansi.js';
 import {
   type BenchRun,
   compareRuns,
@@ -26,7 +27,7 @@ import {
   SIZES,
   saveRun,
 } from './bench.js';
-import { hexToRgb } from './color.js';
+import { contrastHex, hexToOklch, hexToRgb, hueDistance } from './color.js';
 import {
   ensureInitialized,
   loadConfig,
@@ -1054,6 +1055,40 @@ function regenCmd(): void {
 
 // --- home -------------------------------------------------------------------
 
+function roleLegend(): void {
+  const schedule = loadSchedule();
+  const coords = resolveCoordinates();
+  const cur = coords ? currentPeriod(schedule, coords) : null;
+  const versionName = cur ? schedule.assignments[cur] : undefined;
+  const version = (versionName && schedule.versions[versionName]) || schedule.versions.Day;
+  if (!version) {
+    p.log.warn('No palette to inspect yet.');
+    return;
+  }
+  const lines: string[] = [];
+  for (const which of ['dark', 'light'] as const) {
+    const scheme = version.palette[which];
+    lines.push(`${which.toUpperCase()} — contrast vs its own background`);
+    for (let i = 0; i < 16; i++) {
+      const hex = scheme.colors[i]!;
+      const role = ANSI_ROLES[i];
+      const ratio = contrastHex(hex, scheme.background);
+      const canonical = ANSI_HUE[i];
+      let drift = '';
+      if (canonical !== undefined) {
+        const d = hueDistance(hexToOklch(hex).h, canonical);
+        const mark = d > ANSI_HUE_MAX_DEVIATION ? '!' : ' ';
+        drift = `  off-role ${d.toFixed(0).padStart(3)}°${mark}`;
+      }
+      lines.push(
+        `${block(hex)} color${i.toString().padStart(2, ' ')}  ${(role?.name ?? '?').padEnd(14)} ${ratio.toFixed(1).padStart(4)}:1${drift}  ${role?.consumers ?? ''}`
+      );
+    }
+    lines.push('');
+  }
+  p.note(lines.join('\n'), `Roles — ${version.name}`);
+}
+
 async function home(): Promise<void> {
   const firstRun = !existsSync(paths().schedule);
   ensureInitialized();
@@ -1092,6 +1127,7 @@ async function home(): Promise<void> {
         { value: 'switch', label: 'Switch palette now' },
         { value: 'new', label: 'Create a new palette' },
         { value: 'schedule', label: "Show today's schedule" },
+        { value: 'roles', label: 'Show palette roles' },
         { value: 'bench', label: 'Benchmark models & prompts' },
         { value: 'config', label: 'Configure' },
         { value: 'setup', label: 'Services (install / uninstall)' },
@@ -1102,6 +1138,7 @@ async function home(): Promise<void> {
     if (action === 'switch') await switchNowFlow();
     else if (action === 'new') await newPaletteFlow();
     else if (action === 'schedule') showSchedule();
+    else if (action === 'roles') roleLegend();
     else if (action === 'bench') await benchMenu();
     else if (action === 'config') await configMenu();
     else if (action === 'setup') await setupMenu();
