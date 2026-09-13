@@ -10,13 +10,16 @@ describe('semantic role anchoring', () => {
     expect(coherence.every((i) => !i.fatal)).toBe(true);
   });
 
-  test('generated palettes stay within the role deviation bound in every period', async () => {
-    for (const period of ['morning', 'lunch', 'afternoon', 'evening', 'owl']) {
-      const { validation } = await generatePalette(
-        { energy: 'med', warmth: 'neutral', contrast: 'balanced' },
-        { period }
-      );
-      expect(validation.issues.filter((i) => i.kind === 'coherence')).toHaveLength(0);
+  test('generated palettes stay within the role deviation bound across the mood grid', async () => {
+    for (const energy of ['low', 'med', 'high'] as const) {
+      for (const warmth of ['cool', 'neutral', 'warm'] as const) {
+        for (const contrast of ['soft', 'balanced', 'vivid'] as const) {
+          for (const period of ['morning', 'lunch', 'afternoon', 'evening', 'owl']) {
+            const { validation } = await generatePalette({ energy, warmth, contrast }, { period });
+            expect(validation.issues.filter((i) => i.kind === 'coherence')).toHaveLength(0);
+          }
+        }
+      }
     }
   });
 });

@@ -73,11 +73,14 @@ describe('resolveBin', () => {
     }
   });
 
-  test('never returns an empty string', () => {
+  test('resolves to a target systemd can actually execute', () => {
     const prev = process.env.PALETTE_BIN;
     delete process.env.PALETTE_BIN;
     try {
-      expect(resolveBin().length).toBeGreaterThan(0);
+      const bin = resolveBin();
+      expect(bin.length).toBeGreaterThan(0);
+      const executable = bin.split(' ')[0]!;
+      expect(existsSync(executable)).toBe(true);
     } finally {
       if (prev !== undefined) process.env.PALETTE_BIN = prev;
     }

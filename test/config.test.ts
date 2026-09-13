@@ -47,9 +47,18 @@ describe('default schedule', () => {
     }
   });
 
-  test('built-in periods cannot be distinguished from custom by name alone', () => {
+  test('built-ins are flagged so they can be disabled but not deleted', () => {
     const s = defaultSchedule();
+    expect(s.periods).toHaveLength(5);
     expect(s.periods.every((p) => p.builtin)).toBe(true);
+    const custom = {
+      name: 'gym',
+      trigger: { kind: 'clock' as const, time: '06:30' },
+      builtin: false,
+      enabled: true,
+    };
+    const all = [...s.periods, custom];
+    expect(all.filter((p) => p.builtin).map((p) => p.name)).not.toContain('gym');
   });
 });
 
