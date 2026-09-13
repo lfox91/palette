@@ -15,7 +15,8 @@
  * the cast rather than repainting them.
  */
 
-import { pullHue } from '../color.js';
+import { ANSI_HUE } from '../ansi.js';
+import { pullHue, wrapHue } from '../color.js';
 import { band, hueBand, type RangeSpec, type SchemeRanges, type SlotRange } from '../ranges.js';
 import type { Rng } from '../rng.js';
 import type { Contrast, Energy, MoodInput, ToneWindow, Warmth } from '../types.js';
@@ -202,15 +203,15 @@ interface TheoryParams {
 function theoryParams(theory: Theory): TheoryParams {
   switch (theory) {
     case 'monochromatic':
-      return { accentPull: 18, chromaScale: 0.55, cursorOffset: 0 };
+      return { accentPull: 10, chromaScale: 0.55, cursorOffset: 0 };
     case 'analogous':
-      return { accentPull: 12, chromaScale: 0.82, cursorOffset: [30, -30] };
+      return { accentPull: 8, chromaScale: 0.82, cursorOffset: [30, -30] };
     case 'complementary':
-      return { accentPull: 7, chromaScale: 1.05, cursorOffset: 180 };
+      return { accentPull: 5, chromaScale: 1.05, cursorOffset: 180 };
     case 'split':
-      return { accentPull: 7, chromaScale: 1.0, cursorOffset: [150, -150] };
+      return { accentPull: 4, chromaScale: 1.0, cursorOffset: [150, -150] };
     case 'triadic':
-      return { accentPull: 5, chromaScale: 1.12, cursorOffset: [120, -120] };
+      return { accentPull: 3, chromaScale: 1.12, cursorOffset: [120, -120] };
   }
 }
 
@@ -263,7 +264,7 @@ function averageHue(hues: number[]): number {
     x += Math.cos((h * Math.PI) / 180);
     y += Math.sin((h * Math.PI) / 180);
   }
-  return (Math.atan2(y, x) * 180) / Math.PI;
+  return wrapHue((Math.atan2(y, x) * 180) / Math.PI);
 }
 
 // --- grouping selection ----------------------------------------------------
@@ -302,7 +303,6 @@ function chooseGrouping(m: MoodInput, note: NoteSignal, rng: Rng): Grouping {
 
 // --- range construction ----------------------------------------------------
 
-const ANSI_HUE: Record<number, number> = { 1: 29, 2: 142, 3: 100, 4: 264, 5: 328, 6: 195 };
 const HUE_CHROMA_WEIGHT: Record<number, number> = { 2: 0.92, 3: 0.82 };
 
 function buildScheme(
@@ -325,7 +325,7 @@ function buildScheme(
   const accentC = energyChroma(m.energy) * tp.chromaScale * tone.chroma;
   const accentL = (dark ? 0.72 : 0.55) + tone.accentL;
   // hue spread grows as harmony falls (clashing palettes let hues wander more)
-  const spread = 2 + (1 - harmony) * 6;
+  const spread = 1.5 + (1 - harmony) * 3;
 
   const colors: SlotRange[] = new Array(16);
 

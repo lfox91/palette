@@ -65,9 +65,16 @@ export function resolveBin(): string {
     const p = execFileSync('sh', ['-c', 'command -v palette'], { encoding: 'utf8' }).trim();
     if (p) return p;
   } catch {
-    /* fall through */
+    /* not installed on PATH */
   }
-  return process.execPath; // compiled single-file binary
+  // Compiled single-file binary: execPath IS palette. Running from source
+  // (bun/node): execPath is the interpreter, so include the entry script —
+  // otherwise systemd would invoke `bun apply-period ...` and fail.
+  const entry = process.argv[1];
+  if (entry && /\.(m?[jt]s|cjs)$/.test(entry)) {
+    return `${process.execPath} ${entry}`;
+  }
+  return process.execPath;
 }
 
 export function systemdEscape(name: string): string {
@@ -154,7 +161,7 @@ function ensureUnitDir(): string {
 
 // --- install ----------------------------------------------------------------
 
-/** Write the static units and enable the scheduler timer (part of `palette install`). */
+/** Write the static units and enable the scheduler timer (part of `palette setup`). */
 export function installUnits(bin = resolveBin()): void {
   const dir = ensureUnitDir();
   writeFileSync(join(dir, PERIOD_SERVICE), periodServiceUnit(bin), 'utf8');
@@ -164,7 +171,7 @@ export function installUnits(bin = resolveBin()): void {
   systemctl(['enable', '--now', SCHEDULER_TIMER]);
 }
 
-/** Remove all palette units and timers (part of `palette uninstall`). */
+/** Remove all palette units and timers (part of `palette setup`). */
 export function uninstallUnits(): void {
   const dir = unitDir();
   if (!existsSync(dir)) return;

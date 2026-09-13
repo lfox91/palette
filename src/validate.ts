@@ -8,7 +8,8 @@
  * Nothing muddy or unreadable is ever written or applied.
  */
 
-import { contrastHex, deltaEOk, hexToOklch, isValidHex } from './color.js';
+import { ANSI_HUE, ANSI_HUE_MAX_DEVIATION, chromaName } from './ansi.js';
+import { contrastHex, deltaEOk, hexToOklch, hueDistance, isValidHex } from './color.js';
 import type { RawPalette, Scheme } from './types.js';
 
 export interface ValidationIssue {
@@ -136,6 +137,22 @@ function validateScheme(scheme: Scheme, which: 'light' | 'dark', issues: Validat
       false,
       'color15'
     );
+  }
+
+  // --- semantic: a chromatic slot must stay near its terminal role's hue, or
+  // roles collide (e.g. red vs magenta, green vs yellow) across tmux/nvim/
+  // LS_COLORS/syntax themes. Reported, never hidden. ---
+  for (const [slot, canonical] of Object.entries(ANSI_HUE)) {
+    const i = Number(slot);
+    const dev = hueDistance(lch[i]!.h, canonical);
+    if (dev > ANSI_HUE_MAX_DEVIATION) {
+      add(
+        'coherence',
+        `color${i} (${chromaName(i)}) is ${dev.toFixed(0)}° off its terminal role (${canonical}°); hues may collide across tmux/nvim/LS_COLORS`,
+        false,
+        `color${i}`
+      );
+    }
   }
 }
 

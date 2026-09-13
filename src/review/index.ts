@@ -12,6 +12,7 @@
  */
 
 import { isValidHex } from '../color.js';
+import { hashText } from '../hash.js';
 import type {
   MoodInput,
   PaletteConfig,
@@ -30,26 +31,42 @@ export interface ReviewBackend {
 
 // --- shared prompt + parsing (used by local and remote) --------------------
 
+/** Bump when the reviewer prompt changes — benchmark runs pin this. */
+export const REVIEW_PROMPT_VERSION = 1;
+
+const PROMPT_HEADER = [
+  'You are a terminal color-palette reviewer. A palette has already been generated',
+  'by a constraint-based engine and passed contrast/spacing validation. Your job is',
+  'to review it against the requested mood and EITHER approve it as-is OR propose a',
+  'few specific slot tweaks that make it read more true to the mood. Be conservative:',
+  'suggest a change only when confident it improves the fit. Never redesign it.',
+  '',
+  'Slots are: "foreground", "background", "cursor", and "color0".."color15"',
+  '(ANSI: 0 black,1 red,2 green,3 yellow,4 blue,5 magenta,6 cyan,7 white, 8-15 bright).',
+  'Each scheme is "light" or "dark". Colors are "#rrggbb".',
+].join('\n');
+
+const PROMPT_SCHEMA = [
+  'Respond with ONLY a JSON object, no prose, matching exactly:',
+  '{"approved": boolean, "rationale": string, "tweaks": [',
+  '  {"scheme":"light"|"dark","slot":string,"hex":"#rrggbb","reason":string} ]}',
+  'If approved, use an empty tweaks array.',
+].join('\n');
+
 export function buildReviewPrompt(palette: RawPalette, input: MoodInput): string {
   return [
-    'You are a terminal color-palette reviewer. A palette has already been generated',
-    'by a constraint-based engine and passed contrast/spacing validation. Your job is',
-    'to review it against the requested mood and EITHER approve it as-is OR propose a',
-    'few specific slot tweaks that make it read more true to the mood. Be conservative:',
-    'suggest a change only when confident it improves the fit. Never redesign it.',
-    '',
-    'Slots are: "foreground", "background", "cursor", and "color0".."color15"',
-    '(ANSI: 0 black,1 red,2 green,3 yellow,4 blue,5 magenta,6 cyan,7 white, 8-15 bright).',
-    'Each scheme is "light" or "dark". Colors are "#rrggbb".',
+    PROMPT_HEADER,
     '',
     `Mood: ${JSON.stringify(input)}`,
     `Palette: ${JSON.stringify(palette)}`,
     '',
-    'Respond with ONLY a JSON object, no prose, matching exactly:',
-    '{"approved": boolean, "rationale": string, "tweaks": [',
-    '  {"scheme":"light"|"dark","slot":string,"hex":"#rrggbb","reason":string} ]}',
-    'If approved, use an empty tweaks array.',
+    PROMPT_SCHEMA,
   ].join('\n');
+}
+
+/** Stable hash of the reviewer prompt (version + static instructions). */
+export function reviewPromptHash(): string {
+  return hashText(`${REVIEW_PROMPT_VERSION}:${PROMPT_HEADER}\n${PROMPT_SCHEMA}`);
 }
 
 /** Robustly extract the suggestion JSON from a model response. */

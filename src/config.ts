@@ -12,7 +12,7 @@
  * derived from Day by a deterministic warm-and-dim transform in OKLCH.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { hexToOklch, oklchToHex, pullHue } from './color.js';
@@ -47,9 +47,18 @@ function ensureDir(dir: string): void {
 }
 
 function readJson<T>(file: string): T | null {
+  if (!existsSync(file)) return null;
   try {
     return JSON.parse(readFileSync(file, 'utf8')) as T;
   } catch {
+    // Never silently discard user state: move the unreadable file aside so it
+    // can be recovered, instead of letting the next save overwrite it.
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    try {
+      renameSync(file, `${file}.corrupt-${stamp}`);
+    } catch {
+      /* best effort — fall back to defaults even if we cannot move it */
+    }
     return null;
   }
 }
@@ -57,6 +66,18 @@ function readJson<T>(file: string): T | null {
 function writeJson(file: string, value: unknown): void {
   ensureDir(paths().base);
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+/**
+ * First name not already taken: `base`, else `base-2`, `base-3`, … Used so a
+ * conflicting period/palette name triggers a RENAME rather than a silent
+ * overwrite of the user's saved state.
+ */
+export function nextFreeName(base: string, taken: (name: string) => boolean): string {
+  if (!taken(base)) return base;
+  let n = 2;
+  while (taken(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
 }
 
 // --- seed palettes: Solarized × GNOME Sweet --------------------------------

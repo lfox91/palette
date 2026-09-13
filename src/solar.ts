@@ -32,6 +32,10 @@ const toDeg = (rad: number): number => (rad * 180) / Math.PI;
 const sinD = (deg: number): number => Math.sin(toRad(deg));
 const cosD = (deg: number): number => Math.cos(toRad(deg));
 const tanD = (deg: number): number => Math.tan(toRad(deg));
+/** Synchronous sleep without spawning a process (for the GeoClue poll loop). */
+const sleepSync = (ms: number): void => {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+};
 /** positive modulo, matching Python's `%` for a positive divisor */
 const mod = (a: number, n: number): number => ((a % n) + n) % n;
 
@@ -177,7 +181,7 @@ export function getGeoclueCoordinates(): Coordinates | null {
       break;
     }
     // brief bounded wait between polls without pulling in async
-    run('sleep', ['0.3']);
+    sleepSync(300);
   }
   if (!locationPath) return null;
 
@@ -230,7 +234,7 @@ const TIMEZONE_COORDINATE_FALLBACKS: Record<string, Coordinates> = {
   'Africa/Lagos': { lat: 6.5244, lon: 3.3792 },
   'Africa/Johannesburg': { lat: -26.2041, lon: 28.0473 },
   'Asia/Dubai': { lat: 25.2048, lon: 55.2708 },
-  'Asia/Kolkata': { lat: 28.6139, lon: 77.209 },
+  'Asia/Kolkata': { lat: 22.5726, lon: 88.3639 },
   'Asia/Bangkok': { lat: 13.7563, lon: 100.5018 },
   'Asia/Singapore': { lat: 1.3521, lon: 103.8198 },
   'Asia/Shanghai': { lat: 31.2304, lon: 121.4737 },

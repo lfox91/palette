@@ -23,23 +23,25 @@ as they drift through the year.
 
 ```bash
 npm i -g @leafox/palette
-palette install
+palette setup
 ```
 
 This pulls an optional `node-llama-cpp` for offline review if your platform
 supports it; otherwise `none`/`remote` review still work.
 
 **Standalone binary (zero toolchain):** grab the baseline Linux binary from the
-[latest release](../../releases), put it on your `PATH`, and run `palette install`.
+[latest release](../../releases), put it on your `PATH`, and run `palette setup`.
 
 ## Quickstart
 
 ```bash
-palette install          # register the managed palette + systemd user timers
-palette create           # guided: mood → generated palette → assign to a period
-palette schedule show    # see today's trigger times
-palette                  # apply a palette right now (choose scope)
+palette          # home: switch palettes, create, configure, set up services
+palette setup    # install the managed palette + systemd user timers
+palette config   # periods, defaults, and local review models
 ```
+
+Run `palette` again any time. A first run is detected by the absence of a saved
+schedule, and it offers to set up the services for you.
 
 ## How it works
 
@@ -54,9 +56,9 @@ trigger is either a clock time or a solar anchor with an offset:
 | evening   | ~1h48m before sunset |
 | owl       | 02:00                |
 
-Add your own: `palette period add gym "1h before sunrise"`. Triggers understand
+Add your own from `palette config` → *Periods & schedule*. Triggers understand
 `"7am"`, `"13:30"`, `"sunset"`, `"30m before sunset"`, `"1h after sunrise"`.
-Built-ins can be disabled (`palette period disable owl`) but not deleted.
+Built-ins can be disabled but not deleted.
 
 **Generation is code; the model only reviews.** A constraint-based engine places
 all 16 ANSI slots (plus fg/bg/cursor) deliberately in OKLCH space and randomizes
@@ -72,34 +74,78 @@ timer). Location comes from GNOME Night Light → GeoClue → a timezone fallbac
 
 ## Commands
 
+Three human commands, one interactive surface:
+
 ```
-palette                       apply a palette now (choose + scope)
-palette create                generate + review + assign to a period
-palette apply <version>       apply a stored version now
-palette list                  period→version map + saved versions
-palette schedule show         today's trigger times
-palette schedule <p> <v>      assign version v to period p
-palette period add|rm|disable|enable <name> [trigger]
-palette configure             review mode, defaults, remote key
-palette model scan|list|pull|use   manage GGUFs for local review
-palette regen                 refresh period timers
-palette install | uninstall   set up / remove systemd units
+palette          open the home screen: switch now, create a palette, configure,
+                 or run setup. First run offers to install the services.
+palette setup    install / uninstall / status of the systemd + Ptyxis wiring
+palette config   periods & schedule, defaults & review, local GGUF models
+```
+
+Two hidden machine hooks (invoked by systemd, never by hand):
+
+```
+palette apply-period <name>   apply the palette assigned to a period
+palette regen                 refresh the period timers as the sun drifts
 ```
 
 ## Configuration
 
 State lives in `~/.config/palette/` (`config.json`, `schedule.json`,
-`last_regen`, `models/`). `palette configure` edits it interactively.
+`last_regen`, `models/`) so the non-interactive systemd path has a stable,
+machine-readable substrate. You never hand-edit it — the `palette config`
+screen owns it.
 
-Local review never bundles a model: `palette model scan` reuses a GGUF already
-on your machine (llama.cpp / Ollama / LM Studio), or `palette model pull <id>`
-fetches a small, permissively-licensed one with explicit consent.
+Local review never bundles a model: `palette config` will scan for a GGUF you
+already have (llama.cpp / Ollama / LM Studio) or fetch a small, permissively
+licensed one with explicit consent.
+
+## Trust & provenance
+
+`palette` is upstream-authored software. The maintainer designs, generates, and
+validates every palette enabled by default, and **does not enable palettes,
+models, or plugins authored by anyone else by default**. Not to be unwelcoming —
+a terminal palette is a surface you read all day, and defaulting to third-party
+output would import a supply chain into your eyes. It is the same reasoning as
+any dependency: you are opting into someone else's judgement.
+
+Anyone may publish and use their own period packs, derivers, reviewers, and
+sinks. They are simply opt-in, and the project distinguishes:
+
+- **Official** — authored by this project, or explicitly admitted by the
+  maintainer. Shipped and enabled by default.
+- **Community** — everyone else. Never enabled by default; loaded only when you
+  explicitly opt in, and run out-of-process.
+
+Pins and content hashes live in `palette.lock.json`. The full model is in
+[RFC 0001](docs/rfc/0001-open-palette-benchmarking.md).
+
+## Proof of Thought
+
+Where an idea here has no prior art, the operator's exact prompt is recorded —
+verbatim, with the harness, model, date, and commit that produced it — and
+hash-pinned so it cannot be silently rewritten. We call this a **proof of
+thought**: the citation is not "someone once said this" but "here is the exact
+prompt, and here is its hash." Source of truth:
+[`docs/citations/proof-of-thought.json`](docs/citations/proof-of-thought.json);
+rendered: [`docs/citations/proof-of-thought.md`](docs/citations/proof-of-thought.md).
+
+## Benchmarking (experimental)
+
+Because generation is deterministic, the *only* variable in a run is the
+reviewer. That makes `palette` a clean harness for comparing models and prompts
+on a real, constrained task: hold the candidates fixed, vary the reviewer, and
+measure approval rate, tweak magnitude, and **scope conformance** — whether the
+reviewer stayed on the task it was given instead of drifting, inventing, or
+smuggling in unrelated content. Runs can be named and bookmarked by company or
+model. See [RFC 0001](docs/rfc/0001-open-palette-benchmarking.md).
 
 ## Development
 
 ```bash
 bun install
-bun run dev -- list        # run the CLI from source
+bun run dev -- help       # run the CLI from source
 bun test                   # unit tests
 bun run check              # biome lint + format
 bun run typecheck          # tsc --noEmit

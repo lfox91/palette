@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "open-palette-benchmark",
+      "title": "Open palette benchmark: deterministic generator + AI reviewer only, with an explicit trust boundary",
+      "prompt": "this opens up a new opportunity for plugins and adpaters as well. we can start with the ones that matter to me but people can use their on. I think this can be used as a public modeling benchmarking tool. I'll lock on versions and mark certain versions offical and obviously using the latest open source and available security tooling by default. but I never plan to use the versions other people make by default and that should be stated plainly with reasoning in the read me as well.",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "date": "2026-09-12",
+      "commit": "938c059",
+      "priorArt": "none found for benchmarking an AI model strictly as a constrained reviewer of procedurally generated palette candidates (searched 2026-09-12; nearest: palettecore, Root Loops — generators/auditors, no AI; MT-Bench/Chatbot Arena — rank model outputs, not critique non-AI artifacts)",
+      "artifact": "docs/rfc/0001-open-palette-benchmarking.md"
+    },
+    {
+      "id": "scope-conformance-eval",
+      "title": "Scope conformance as a benchmark eval: nothing off-goal, and named model/company bookmarks",
+      "prompt": "yes, another selling point for me is I can show off my prompt engineering with far less risk of accidentally uploading anything harmful. that can even be an eval, there should be nothing in the code or created by an agent that is about anything other than the goal as committed.oh yeah people can show off their models by making named bookmarks for their company or model",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "date": "2026-09-12",
+      "commit": "938c059",
+      "priorArt": "none found for a scope-conformance metric that measures whether a reviewer's output stays on the committed goal (searched 2026-09-12); adjacent: Eval Factsheets / BenchmarkCards document methodology but do not evaluate on-goal adherence of agent output",
+      "artifact": "src/bench.ts"
+    },
+    {
+      "id": "cross-tool-palette-contract",
+      "title": "One palette contract across TUIs, nvim, terminals, tmux, harnesses, and languages; surface conflicts instead of overwriting",
+      "prompt": "it's important this works for tuis, nvim, gnome terminals ex. ptyxis, tmux, code harnesses, and languages. so the agent also needs to say when things are conflicting this might trigger the user to rename instead of overwrite",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "date": "2026-09-12",
+      "commit": "938c059",
+      "priorArt": "ANSI/LS_COLORS slot conventions and Solarized are prior art for roles; the framing of conflict-surfacing (report drift, offer rename over overwrite) across this specific consumer set was not found (searched 2026-09-12)",
+      "artifact": "src/ansi.ts"
+    },
+    {
+      "id": "proof-of-thought-citation",
+      "title": "Proof of Thought: cite the operator's exact prompts where no prior art exists",
+      "prompt": "I want you to try something new too, for anything you can't find prior art on I want you to add my exact prompts with harness, model, date, and commit hash to the citation section. I'm saying this is proof of thought",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "date": "2026-09-12",
+      "commit": "938c059",
+      "priorArt": "none found for a hash-pinned, harness/model/date/commit-attributed citation of an operator's exact prompts as evidence of original reasoning (searched 2026-09-12)",
+      "artifact": "src/proof.ts"
+    }
+  ]
+}

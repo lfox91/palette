@@ -27,7 +27,7 @@ export function makeRemoteReviewer(config: PaletteConfig): ReviewBackend {
       const remote = config.remote;
       if (!remote) {
         throw new Error(
-          'remote review is not configured. Run `palette configure` to set a provider and API-key env var.'
+          'remote review is not configured. Run `palette config` to set a provider and API-key env var.'
         );
       }
       const envName = remote.apiKeyEnv ?? DEFAULT_ENV[remote.provider];
@@ -56,6 +56,7 @@ export function makeRemoteReviewer(config: PaletteConfig): ReviewBackend {
 async function callAnthropic(apiKey: string, model: string, prompt: string): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: AbortSignal.timeout(60_000),
     headers: {
       'content-type': 'application/json',
       'x-api-key': apiKey,
@@ -80,6 +81,7 @@ async function callOpenAiCompatible(
 ): Promise<string> {
   const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
+    signal: AbortSignal.timeout(60_000),
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,

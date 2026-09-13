@@ -7,11 +7,19 @@
  * CLI gates that; this module just performs the download).
  */
 
-import { createWriteStream, existsSync, readdirSync, renameSync, statSync } from 'node:fs';
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
-import { finished } from 'node:stream/promises';
+import { pipeline } from 'node:stream/promises';
 import { loadConfig, paths, saveConfig } from './config.js';
 
 export interface FoundModel {
@@ -138,14 +146,19 @@ export async function pullModel(
   onProgress?: (received: number, total: number) => void
 ): Promise<string> {
   const model = suggestedById(id);
-  if (!model) throw new Error(`unknown model "${id}". See \`palette model list\`.`);
+  if (!model)
+    throw new Error(
+      `unknown model "${id}". See the Local review models screen in \`palette config\`.`
+    );
   const dir = paths().models;
   const dest = join(dir, `${id}.gguf`);
   if (existsSync(dest)) return dest;
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   const res = await fetch(model.url);
   if (!res.ok || !res.body) throw new Error(`download failed (${res.status}) for ${model.url}`);
-  const total = Number(res.headers.get('content-length') ?? model.sizeBytes);
+  const headerLength = Number(res.headers.get('content-length'));
+  const total = Number.isFinite(headerLength) && headerLength > 0 ? headerLength : model.sizeBytes;
 
   const tmp = `${dest}.part`;
   let received = 0;
@@ -154,10 +167,13 @@ export async function pullModel(
     received += chunk.length;
     onProgress?.(received, total);
   });
-  const sink = createWriteStream(tmp);
-  source.pipe(sink);
-  await finished(sink);
-  renameSync(tmp, dest);
+  try {
+    await pipeline(source, createWriteStream(tmp));
+    renameSync(tmp, dest);
+  } catch (err) {
+    rmSync(tmp, { force: true }); // never leave a half-written model behind
+    throw err;
+  }
   return dest;
 }
 
@@ -172,12 +188,15 @@ export function useModel(pathOrId: string): string {
   if (!pathOrId.includes('/')) {
     const candidate = join(paths().models, `${pathOrId}.gguf`);
     if (!existsSync(candidate))
-      throw new Error(`"${pathOrId}" is not pulled. Run \`palette model pull ${pathOrId}\` first.`);
+      throw new Error(
+        `"${pathOrId}" is not pulled. Pull it from \`palette config\` → Local review models first.`
+      );
     modelPath = candidate;
   }
   if (!existsSync(modelPath)) throw new Error(`no such model file: ${modelPath}`);
   const cfg = loadConfig();
   cfg.modelPath = modelPath;
+  cfg.defaults.reviewMode = 'local'; // selecting a model is what enables local review
   saveConfig(cfg);
   return modelPath;
 }

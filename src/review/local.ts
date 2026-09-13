@@ -2,7 +2,7 @@
  * Local reviewer — node-llama-cpp + a small GGUF, fully offline. node-llama-cpp
  * is an OPTIONAL dependency and is NEVER bundled into the compiled binary; we
  * import it by a computed specifier so `bun build --compile` can't embed it, and
- * point it at a model resolved from config (`palette model use`).
+ * point it at a model resolved from config (`palette config` → Local review models).
  *
  * If the dependency or a model isn't available, we throw a clear, actionable
  * error — the CLI catches it and falls back to no review.
@@ -19,7 +19,7 @@ export function makeLocalReviewer(config: PaletteConfig): ReviewBackend {
       const modelPath = config.modelPath;
       if (!modelPath || !existsSync(modelPath)) {
         throw new Error(
-          'local review needs a GGUF model. Run `palette model scan` to find one, or `palette model pull <id>`, then `palette model use <path>`.'
+          'local review needs a GGUF model. Open `palette config` → Local review models to scan for one or pull a small model.'
         );
       }
 
@@ -36,8 +36,8 @@ export function makeLocalReviewer(config: PaletteConfig): ReviewBackend {
 
       const llama = await mod.getLlama();
       const model = await llama.loadModel({ modelPath });
+      const context = await model.createContext({ contextSize: 4096 });
       try {
-        const context = await model.createContext({ contextSize: 4096 });
         const session = new mod.LlamaChatSession({ contextSequence: context.getSequence() });
         const answer = await session.prompt(buildReviewPrompt(palette, input), {
           temperature: 0.2,
@@ -45,7 +45,9 @@ export function makeLocalReviewer(config: PaletteConfig): ReviewBackend {
         });
         return parseSuggestion(answer);
       } finally {
+        await context.dispose?.();
         await model.dispose?.();
+        await llama.dispose?.();
       }
     },
   };

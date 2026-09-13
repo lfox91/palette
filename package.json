@@ -10,15 +10,17 @@
   "files": [
     "dist",
     "packaging/systemd",
+    "docs",
     "README.md"
   ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
     "build:binary": "bun build src/cli.ts --compile --target=bun-linux-x64-baseline --outfile=dist/palette",
-    "lint": "biome lint src",
-    "format": "biome format --write src",
-    "check": "biome check --write src",
+    "lint": "biome lint src test",
+    "format": "biome format --write src test",
+    "check": "biome check --write src test",
+    "proofs": "bun run src/proof-cli.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

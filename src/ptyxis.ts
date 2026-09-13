@@ -42,8 +42,11 @@ function commandOk(cmd: string, args: string[]): boolean {
 
 export function detectInstall(): Install | null {
   if (commandOk('flatpak', ['info', APP_ID])) return 'flatpak';
-  // native: the app's data dir exists, or a real binary is on PATH
-  if (existsSync(join(homedir(), '.local/share', APP_ID))) return 'native';
+  // native: require the settings schema to actually resolve. A leftover data
+  // directory (e.g. from a previous flatpak or a prior native install) is not
+  // sufficient — trusting it leads to an uncaught gsettings failure on machines
+  // where Ptyxis is not actually installed natively.
+  if (commandOk('gsettings', ['get', 'org.gnome.Ptyxis', 'default-profile-uuid'])) return 'native';
   if (commandOk('sh', ['-c', 'command -v ptyxis'])) return 'native';
   return null;
 }

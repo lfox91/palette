@@ -7,6 +7,7 @@
  * There is no seed to replay. A saved version stores its resulting colors.
  */
 
+import { enforceContrast } from './contrast.js';
 import { type Deriver, heuristicDeriver } from './derive/index.js';
 import { selectPalette } from './ranges.js';
 import { makeRng } from './rng.js';
@@ -26,6 +27,11 @@ export interface GenerateOptions {
   period?: string;
   /** how many random selections to try for a fatal-free palette */
   maxAttempts?: number;
+  /**
+   * Deterministic seed. Omit for fresh entropy (normal generation); pass a fixed
+   * seed to make a palette exactly reproducible — used by the benchmark harness.
+   */
+  seed?: number;
 }
 
 export interface GenerateResult {
@@ -46,17 +52,33 @@ export async function generatePalette(
   const tone = toneFor(opts.period ?? 'afternoon');
   const maxAttempts = opts.maxAttempts ?? 48;
 
-  const rng = makeRng(randomSeed());
+  const rng = makeRng(opts.seed ?? randomSeed());
   const spec = await deriver.derive(input, tone, rng);
 
-  // Preference: clean (no issues) > ok (no fatal) > anything. Keep the best seen.
-  let best: GenerateResult | null = null;
-  const rank = (v: ValidationResult): number => (v.clean ? 2 : v.ok ? 1 : 0);
+  // Preference: clean > fewer aesthetic warnings > anything. The selector is
+  // scored on the raw candidate; contrast correction is applied once to the
+  // winner (cheap) and the returned validation reflects the corrected result.
+  const finish = (raw: RawPalette): GenerateResult => {
+    const palette = enforceContrast(raw);
+    return { palette, validation: validatePalette(palette) };
+  };
+
+  let best: RawPalette | null = null;
+  let bestScore = -1;
+  const score = (v: ValidationResult): number => {
+    if (!v.ok) return 0;
+    if (v.clean) return 3;
+    return 1 + 1 / (1 + v.issues.length);
+  };
   for (let i = 0; i < maxAttempts; i++) {
     const palette = selectPalette(spec, rng);
     const validation = validatePalette(palette);
-    if (validation.clean) return { palette, validation }; // best possible; stop early
-    if (!best || rank(validation) > rank(best.validation)) best = { palette, validation };
+    if (validation.clean) return finish(palette); // best possible; stop early
+    const s = score(validation);
+    if (s > bestScore) {
+      bestScore = s;
+      best = palette;
+    }
   }
-  return best!;
+  return finish(best!);
 }

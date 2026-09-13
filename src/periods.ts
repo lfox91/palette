@@ -64,7 +64,8 @@ export function parseDurationMin(raw: string): number | null {
   if (/^\d+(?:\.\d+)?$/.test(s)) return Math.round(Number.parseFloat(s)); // bare number = minutes
   let total = 0;
   let matched = false;
-  const re = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hours?|m|min|mins|minutes?)/g;
+  // Longest unit first so "30min" consumes "min", not just "m".
+  const re = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)/g;
   let m: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: standard regex-exec loop
   while ((m = re.exec(s)) !== null) {
@@ -75,11 +76,17 @@ export function parseDurationMin(raw: string): number | null {
   return matched ? Math.round(total) : null;
 }
 
+function escapeReg(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Word-bounded so "noon" never matches inside "afternoon" and "solar noon"
+// matches as one unit rather than as a bare "noon".
+const ANCHOR_RE = new RegExp(`\\b(${Object.keys(ANCHOR_WORDS).map(escapeReg).join('|')})\\b`);
+
 function findAnchor(s: string): SolarAnchor | null {
-  for (const [word, anchor] of Object.entries(ANCHOR_WORDS)) {
-    if (new RegExp(`\\b${word}\\b`).test(s)) return anchor;
-  }
-  return null;
+  const m = s.match(ANCHOR_RE);
+  return m ? (ANCHOR_WORDS[m[1]!] ?? null) : null;
 }
 
 /**
@@ -94,7 +101,7 @@ export function parseTrigger(input: string): Trigger {
 
   if (anchor) {
     // exact anchor (no offset words/digits beyond the anchor itself)
-    const withoutAnchor = s.replace(new RegExp(Object.keys(ANCHOR_WORDS).join('|')), '').trim();
+    const withoutAnchor = s.replace(ANCHOR_RE, '').trim();
     if (withoutAnchor === '') return { kind: 'solar', anchor, offsetMin: 0 };
 
     // direction: "after"/"+" => positive, "before"/"-" => negative
@@ -171,7 +178,9 @@ export function resolveTrigger(trigger: Trigger, day: Date, coords: Coordinates)
 export function nextOccurrence(trigger: Trigger, now: Date, coords: Coordinates): Date | null {
   const today = resolveTrigger(trigger, now, coords);
   if (today && today.getTime() > now.getTime()) return today;
-  const tomorrow = new Date(now.getTime() + 86_400_000);
+  // Advance the LOCAL calendar date, not a fixed 24h: on a DST transition
+  // now+86_400_000 can land on the same calendar day and resolve to a past time.
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0, 0);
   return resolveTrigger(trigger, tomorrow, coords);
 }
 
