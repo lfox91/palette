@@ -15,7 +15,9 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { ANSI_HUE } from './ansi.js';
 import { hexToOklch, oklchToHex, pullHue } from './color.js';
+import { enforceContrast } from './contrast.js';
 import { defaultPeriods } from './periods.js';
 import type { PaletteConfig, PaletteVersion, RawPalette, ScheduleConfig, Scheme } from './types.js';
 
@@ -107,6 +109,34 @@ const SOLARIZED_ANSI: string[] = [
   '#fdf6e3', // 15 base3
 ];
 
+/**
+ * Canonical terminal-role hues (see src/ansi.ts). Slots 1–6 are the semantic
+ * contract the validator enforces; 9 and 13 are the bright counterparts of red
+ * and magenta, so they share those hues. The Solarized seed's faint drift off
+ * these roles is exactly what made "media" read like "error" — snapped here.
+ */
+const CANON_HUE: Record<number, number> = {
+  1: ANSI_HUE[1]!,
+  2: ANSI_HUE[2]!,
+  3: ANSI_HUE[3]!,
+  4: ANSI_HUE[4]!,
+  5: ANSI_HUE[5]!,
+  6: ANSI_HUE[6]!,
+  9: ANSI_HUE[1]!,
+  13: ANSI_HUE[5]!,
+};
+
+/** Snap a scheme's chromatic slots to their canonical role hue, keeping L/C. */
+function snapRoles(scheme: Scheme): Scheme {
+  const colors = scheme.colors.map((hex, i) => {
+    const h = CANON_HUE[i];
+    if (h === undefined) return hex;
+    const c = hexToOklch(hex);
+    return oklchToHex({ L: c.L, C: c.C, h });
+  });
+  return { ...scheme, colors };
+}
+
 function dayLight(): Scheme {
   return {
     background: '#fdf6e3', // base3
@@ -153,12 +183,15 @@ function eveningScheme(day: Scheme, isDark: boolean): Scheme {
 }
 
 export function dayPalette(): RawPalette {
-  return { light: dayLight(), dark: dayDark() };
+  return enforceContrast({ light: snapRoles(dayLight()), dark: snapRoles(dayDark()) });
 }
 
 export function eveningPalette(): RawPalette {
   const day = dayPalette();
-  return { light: eveningScheme(day.light, false), dark: eveningScheme(day.dark, true) };
+  return enforceContrast({
+    light: snapRoles(eveningScheme(day.light, false)),
+    dark: snapRoles(eveningScheme(day.dark, true)),
+  });
 }
 
 function builtinVersion(name: string, palette: RawPalette): PaletteVersion {

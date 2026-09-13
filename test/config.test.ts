@@ -23,9 +23,9 @@ import {
 import { validatePalette } from '../src/validate.js';
 
 describe('seeded palettes', () => {
-  test('Day and Evening both validate', () => {
-    expect(validatePalette(dayPalette()).ok).toBe(true);
-    expect(validatePalette(eveningPalette()).ok).toBe(true);
+  test('Day and Evening both pass the full gate', () => {
+    expect(validatePalette(dayPalette()).clean).toBe(true);
+    expect(validatePalette(eveningPalette()).clean).toBe(true);
   });
 
   test('Evening is derived from Day (warmer/dimmer, still complete)', () => {

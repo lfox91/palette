@@ -72,9 +72,9 @@ describe('periods', () => {
 });
 
 describe('validation + seeds', () => {
-  test('Day and Evening pass (no fatals)', () => {
-    expect(validatePalette(dayPalette()).ok).toBe(true);
-    expect(validatePalette(eveningPalette()).ok).toBe(true);
+  test('Day and Evening pass the full gate', () => {
+    expect(validatePalette(dayPalette()).clean).toBe(true);
+    expect(validatePalette(eveningPalette()).clean).toBe(true);
   });
   test('a broken palette is fatal', () => {
     const bad = dayPalette();

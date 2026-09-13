@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { dayPalette } from '../src/config.js';
+import { dayPalette, eveningPalette } from '../src/config.js';
 import { generatePalette } from '../src/generate.js';
 import { validatePalette } from '../src/validate.js';
 
 describe('semantic role anchoring', () => {
-  test('the built-in seed surfaces its hue-role conflict instead of hiding it', () => {
-    const coherence = validatePalette(dayPalette()).issues.filter((i) => i.kind === 'coherence');
-    expect(coherence.length).toBeGreaterThan(0);
-    expect(coherence.every((i) => !i.fatal)).toBe(true);
+  test('the shipped Day and Evening seeds are clean, not merely fatal-free', () => {
+    for (const palette of [dayPalette(), eveningPalette()]) {
+      expect(validatePalette(palette).clean).toBe(true);
+    }
   });
 
   test('generated palettes stay within the role deviation bound across the mood grid', async () => {

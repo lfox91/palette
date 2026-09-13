@@ -116,3 +116,12 @@ Findings 1 and 2 resolve one of two ways, and the choice is a product call:
 
 Either is defensible. Leaving the README claiming "passes the gate" while the
 shipped default warns is not — the documentation and the behavior must agree.
+
+## Resolution
+
+Option **(a)** was chosen. `dayPalette()` and `eveningPalette()` now snap their
+chromatic slots to the canonical ANSI role hues (keeping lightness and chroma,
+so the palette's character survives) and pass through the contrast projection.
+`Day` and `Evening` validate `.clean`, so P2 is true as written. The test that
+previously asserted the defect now asserts the intent: the shipped defaults pass
+the full gate, not merely the fatal check.
