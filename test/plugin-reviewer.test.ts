@@ -110,4 +110,21 @@ describe('plugin reviewer backend', () => {
   test('refuses an unpinned plugin', async () => {
     await expect(makePluginReviewer(config('missing/plugin'))).rejects.toThrow(/not pinned/);
   });
+
+  test('refuses a pinned plugin that is not a reviewer', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'palette-kind-'));
+    const entry = join(dir, 'sink.mjs');
+    writeFileSync(entry, 'export default () => ({});');
+    const file = writeManifest(dir, {
+      id: 'local/sink',
+      kind: 'sink',
+      name: 'Sink',
+      version: '1.0.0',
+      tier: 'local',
+      entry: 'sink.mjs',
+    });
+    installPlugin(file);
+    await expect(makePluginReviewer(config('local/sink'))).rejects.toThrow(/not a reviewer/);
+    rmSync(dir, { recursive: true, force: true });
+  });
 });

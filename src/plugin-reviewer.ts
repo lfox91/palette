@@ -60,6 +60,9 @@ export async function makePluginReviewer(config: PaletteConfig): Promise<ReviewB
   const manifest = pinned.manifest;
   const check = verifyPlugin(manifest, loadLock(), pluginContentHash(manifest));
   if (!check.ok) throw new Error(check.reason ?? `plugin "${id}" failed verification`);
+  if (manifest.kind !== 'reviewer') {
+    throw new Error(`plugin "${id}" is a ${manifest.kind}, not a reviewer`);
+  }
 
   const isCommunity = manifest.tier === 'community';
   if (isCommunity && !manifest.command) {

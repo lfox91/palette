@@ -177,6 +177,43 @@ sinks. They are simply opt-in, and the project distinguishes:
 Pins and content hashes live in `palette.lock.json`. The full model is in
 [RFC 0001](docs/rfc/0001-open-palette-benchmarking.md).
 
+### Writing a reviewer plugin
+
+A reviewer is a small program behind a JSON contract. Pick the tier by who you
+are:
+
+- **local** — an ES module exporting `default` (or `review`) that takes the
+  request and returns a suggestion. Runs in-process.
+- **community** — any executable that reads one JSON request on stdin and writes
+  one JSON response on stdout. Always out-of-process.
+
+The request is `{ kind: "review", prompt, palette, mood }`. The response is the
+same shape every backend returns:
+
+```json
+{ "approved": true, "rationale": "reads warm and quiet", "tweaks": [] }
+```
+
+A manifest is a JSON file:
+
+```json
+{
+  "id": "you/reviewer",
+  "kind": "reviewer",
+  "name": "Your reviewer",
+  "version": "1.0.0",
+  "tier": "community",
+  "command": ["your-binary", "--review"]
+}
+```
+
+Pin and activate it in `palette config` → **Plugins & trust** → *Pin a plugin*,
+then *Use a pinned plugin for review*. A manifest cannot mark itself `official` —
+that tier means upstream-authored, so a self-declared official is demoted to
+`local`. Responses still pass through the structural validator, so a plugin can
+propose tweaks but cannot bypass safety. Out-of-process is isolation, not a
+sandbox: a community plugin runs with your user's privileges, so read it first.
+
 ## Proof of Thought
 
 Where an idea here has no prior art, the operator's exact prompt is recorded —
