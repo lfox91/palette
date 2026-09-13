@@ -789,9 +789,24 @@ async function runBenchFlow(): Promise<void> {
     options: [
       { value: 'configured', label: `Configured reviewer (${cfg.defaults.reviewMode})` },
       { value: 'none', label: 'none — no review (control)' },
+      { value: 'plugin', label: 'plugin — a pinned community/local reviewer' },
     ],
   })) as string;
   if (cancelled(mode)) return;
+
+  let pluginId: string | undefined;
+  if (mode === 'plugin') {
+    const pinned = loadLock().plugins;
+    if (pinned.length === 0) {
+      p.log.warn('No plugins are pinned — add one under Plugins & trust.');
+      return;
+    }
+    pluginId = (await p.select({
+      message: 'Plugin reviewer',
+      options: pinned.map((e) => ({ value: e.id, label: `${e.id}@${e.version}`, hint: e.tier })),
+    })) as string;
+    if (cancelled(pluginId)) return;
+  }
 
   const label = (await p.text({
     message: 'Label',
@@ -806,10 +821,16 @@ async function runBenchFlow(): Promise<void> {
 
   let reviewer: ReviewBackend;
   try {
-    reviewer =
-      mode === 'none'
-        ? await getReviewer({ ...cfg, defaults: { ...cfg.defaults, reviewMode: 'none' } })
-        : await getReviewer(cfg);
+    if (mode === 'none') {
+      reviewer = await getReviewer({ ...cfg, defaults: { ...cfg.defaults, reviewMode: 'none' } });
+    } else if (mode === 'plugin') {
+      reviewer = await getReviewer({
+        ...cfg,
+        defaults: { ...cfg.defaults, reviewMode: 'plugin', pluginId },
+      });
+    } else {
+      reviewer = await getReviewer(cfg);
+    }
   } catch (e) {
     p.log.error((e as Error).message);
     return;
