@@ -20,7 +20,8 @@
  * enabled plugin; the CLI refuses to run a plugin whose content changed.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { paths } from './config.js';
 import { hashFile, hashText } from './hash.js';
 
@@ -46,6 +47,8 @@ export interface PluginLockEntry {
   version: string;
   hash: string;
   tier: TrustTier;
+  /** the manifest this entry pinned — required to execute the plugin */
+  manifest?: PluginManifest;
 }
 
 export interface PluginLock {
@@ -80,6 +83,7 @@ export function loadLock(): PluginLock {
 }
 
 export function saveLock(lock: PluginLock): void {
+  mkdirSync(paths().base, { recursive: true });
   writeFileSync(lockPath(), `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
 }
 
@@ -121,6 +125,56 @@ export function verifyPlugin(
       reason: `community plugin "${manifest.id}" must be out-of-process (command)`,
     };
   return { ok: true };
+}
+
+/**
+ * Pin a plugin from a manifest file. A manifest cannot promote itself to
+ * `official` — official means authored here, so a self-declared official is
+ * demoted to `local`. Community plugins must be out-of-process (a command).
+ * The entry path is resolved against the manifest's directory so it survives a
+ * different working directory.
+ */
+export function installPlugin(manifestPath: string): PluginLockEntry {
+  const raw = JSON.parse(readFileSync(manifestPath, 'utf8')) as PluginManifest;
+  if (!raw.id || !raw.kind || !raw.name || !raw.version) {
+    throw new Error('plugin manifest needs id, kind, name, and version');
+  }
+  const tier: TrustTier = raw.tier === 'official' ? 'local' : raw.tier;
+  const manifest: PluginManifest = {
+    ...raw,
+    tier,
+    entry: raw.entry ? resolve(dirname(manifestPath), raw.entry) : undefined,
+  };
+  if (manifest.tier === 'community' && !manifest.command) {
+    throw new Error(`community plugin "${manifest.id}" must declare a command (out-of-process)`);
+  }
+  if (manifest.tier !== 'community' && !manifest.entry) {
+    throw new Error(`${manifest.tier} plugin "${manifest.id}" must declare an in-process entry`);
+  }
+  const lock = loadLock();
+  const entry: PluginLockEntry = {
+    id: manifest.id,
+    version: manifest.version,
+    hash: pluginContentHash(manifest),
+    tier: manifest.tier,
+    manifest,
+  };
+  lock.plugins = [...lock.plugins.filter((p) => p.id !== manifest.id), entry];
+  saveLock(lock);
+  return entry;
+}
+
+export function removePlugin(id: string): boolean {
+  const lock = loadLock();
+  const next = lock.plugins.filter((p) => p.id !== id);
+  if (next.length === lock.plugins.length) return false;
+  lock.plugins = next;
+  saveLock(lock);
+  return true;
+}
+
+export function findPlugin(id: string): PluginLockEntry | null {
+  return loadLock().plugins.find((p) => p.id === id) ?? null;
 }
 
 /**

@@ -47,7 +47,7 @@ import {
   useModel,
 } from './models.js';
 import { describeTrigger, parseTrigger, resolveTrigger } from './periods.js';
-import { loadLock, lockPath, TIER_NOTE } from './plugins.js';
+import { installPlugin, loadLock, lockPath, removePlugin, TIER_NOTE } from './plugins.js';
 import { applyVersion, detectInstall, installManaged, resolveEnv } from './ptyxis.js';
 import { applyTweaks, getReviewer, type ReviewBackend } from './review/index.js';
 import { installUnits, regen, uninstallUnits } from './schedule.js';
@@ -527,10 +527,26 @@ async function defaultsForm(): Promise<void> {
       { value: 'none', label: 'none', hint: 'code only, offline' },
       { value: 'local', label: 'local', hint: 'node-llama-cpp + GGUF' },
       { value: 'remote', label: 'remote', hint: 'BYO API key' },
+      { value: 'plugin', label: 'plugin', hint: 'a pinned local/community backend' },
     ],
   })) as ReviewMode;
   if (cancelled(reviewMode)) return;
   cfg.defaults.reviewMode = reviewMode;
+
+  if (reviewMode === 'plugin') {
+    const pinned = loadLock().plugins;
+    if (pinned.length === 0) {
+      p.log.warn('No plugins are pinned yet — add one under Plugins & trust first.');
+      return;
+    }
+    const pluginId = (await p.select({
+      message: 'Plugin reviewer',
+      initialValue: cfg.defaults.pluginId,
+      options: pinned.map((e) => ({ value: e.id, label: `${e.id}@${e.version}`, hint: e.tier })),
+    })) as string;
+    if (cancelled(pluginId)) return;
+    cfg.defaults.pluginId = pluginId;
+  }
 
   const scope = (await p.select({
     message: 'Default apply-scope for `palette`',
@@ -659,7 +675,7 @@ async function configMenu(): Promise<void> {
     if (action === 'periods') await periodsMenu();
     else if (action === 'defaults') await defaultsForm();
     else if (action === 'models') await modelsMenu();
-    else if (action === 'plugins') pluginsScreen();
+    else if (action === 'plugins') await pluginsScreen();
     else if (action === 'setup') await setupMenu();
   }
   p.outro('Done.');
@@ -667,26 +683,76 @@ async function configMenu(): Promise<void> {
 
 // --- plugins & trust --------------------------------------------------------
 
-function pluginsScreen(): void {
-  const lock = loadLock();
-  const entries =
-    lock.plugins.length === 0
-      ? 'No plugins pinned yet.'
-      : lock.plugins
-          .map((e) => `${e.id}@${e.version}  ${e.tier}  sha256:${e.hash.slice(0, 12)}`)
-          .join('\n');
-  p.note(
-    [
-      `Lock: ${lockPath()}`,
-      '',
-      `official   ${TIER_NOTE.official}`,
-      `local      ${TIER_NOTE.local}`,
-      `community  ${TIER_NOTE.community}`,
-      '',
-      entries,
-    ].join('\n'),
-    'Plugins & trust'
-  );
+async function pluginsScreen(): Promise<void> {
+  for (;;) {
+    const lock = loadLock();
+    const entries =
+      lock.plugins.length === 0
+        ? 'No plugins pinned yet.'
+        : lock.plugins
+            .map((e) => `${e.id}@${e.version}  ${e.tier}  sha256:${e.hash.slice(0, 12)}`)
+            .join('\n');
+    p.note(
+      [
+        `Lock: ${lockPath()}`,
+        '',
+        `official   ${TIER_NOTE.official}`,
+        `local      ${TIER_NOTE.local}`,
+        `community  ${TIER_NOTE.community}`,
+        '',
+        entries,
+      ].join('\n'),
+      'Plugins & trust'
+    );
+    const action = (await p.select({
+      message: 'Plugins',
+      options: [
+        { value: 'install', label: 'Pin a plugin from a manifest path' },
+        { value: 'activate', label: 'Use a pinned plugin for review' },
+        { value: 'remove', label: 'Unpin a plugin' },
+        { value: 'back', label: 'Back' },
+      ],
+    })) as string;
+    if (cancelled(action) || action === 'back') return;
+
+    if (action === 'install') {
+      const manifestPath = (await p.text({ message: 'Path to plugin manifest (.json)' })) as string;
+      if (cancelled(manifestPath) || !manifestPath) continue;
+      try {
+        const entry = installPlugin(manifestPath);
+        p.log.success(`Pinned ${entry.id}@${entry.version} (${entry.tier}).`);
+      } catch (err) {
+        p.log.error(err instanceof Error ? err.message : String(err));
+      }
+    } else if (action === 'activate') {
+      if (lock.plugins.length === 0) {
+        p.log.warn('Nothing pinned to activate.');
+        continue;
+      }
+      const id = (await p.select({
+        message: 'Plugin reviewer',
+        options: lock.plugins.map((e) => ({
+          value: e.id,
+          label: `${e.id}@${e.version}`,
+          hint: e.tier,
+        })),
+      })) as string;
+      if (cancelled(id)) continue;
+      const cfg = loadConfig();
+      cfg.defaults.reviewMode = 'plugin';
+      cfg.defaults.pluginId = id;
+      saveConfig(cfg);
+      p.log.success(`Review mode set to plugin: ${id}.`);
+    } else if (action === 'remove') {
+      if (lock.plugins.length === 0) continue;
+      const id = (await p.select({
+        message: 'Unpin which plugin?',
+        options: lock.plugins.map((e) => ({ value: e.id, label: `${e.id}@${e.version}` })),
+      })) as string;
+      if (cancelled(id)) continue;
+      if (removePlugin(id)) p.log.success(`Unpinned ${id}.`);
+    }
+  }
 }
 
 // --- benchmark --------------------------------------------------------------

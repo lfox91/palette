@@ -83,7 +83,7 @@ export interface Period {
 
 // --- review ----------------------------------------------------------------
 
-export type ReviewMode = 'none' | 'local' | 'remote';
+export type ReviewMode = 'none' | 'local' | 'remote' | 'plugin';
 
 /** A reviewer's response: approve as-is, or propose slot tweaks. */
 export interface PaletteSuggestion {
@@ -109,6 +109,8 @@ export interface PaletteConfig {
     reviewMode: ReviewMode;
     /** picklist defaults so dialogs can be skipped */
     mood: Partial<MoodInput>;
+    /** the pinned plugin id when reviewMode is 'plugin' */
+    pluginId?: string;
     /** default apply-scope for the bare `palette` command */
     applyScope: 'all-times' | 'until-next-change';
   };

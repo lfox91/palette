@@ -169,5 +169,6 @@ export async function getReviewer(config: PaletteConfig): Promise<ReviewBackend>
   const mode = config.defaults.reviewMode;
   if (mode === 'none') return (await import('./none.js')).noneReviewer;
   if (mode === 'local') return (await import('./local.js')).makeLocalReviewer(config);
+  if (mode === 'plugin') return (await import('../plugin-reviewer.js')).makePluginReviewer(config);
   return (await import('./remote.js')).makeRemoteReviewer(config);
 }
