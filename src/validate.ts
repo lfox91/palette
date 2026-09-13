@@ -9,7 +9,7 @@
  */
 
 import { ANSI_HUE, ANSI_HUE_MAX_DEVIATION, chromaName } from './ansi.js';
-import { contrastHex, deltaEOk, hexToOklch, hueDistance, isValidHex } from './color.js';
+import { contrastHex, deltaEOk, hexToOklch, hueDistance, isValidHex, type Oklch } from './color.js';
 import type { RawPalette, Scheme } from './types.js';
 
 export interface ValidationIssue {
@@ -30,12 +30,26 @@ export interface ValidationResult {
 // Tunable thresholds. WCAG AA body text is 4.5:1. Perceptual thresholds are in
 // OKLab distance units (roughly: 0.02 is a just-noticeable difference).
 export const MIN_FG_BG_CONTRAST = 4.5;
-export const MIN_HUE_SEPARATION_DELTAE = 0.06; // between the 6 chromatic hues
+export const MIN_HUE_SEPARATION_DELTAE = 0.06; // ceiling between the 6 chromatic hues
+export const MIN_CHROMA_SEP_FLOOR = 0.02; // floor, so "basically the same color" still fails
+export const CHROMA_SEP_FACTOR = 0.5; // per-unit-chroma share of the requirement
 export const MIN_BRIGHT_OFFSET_DELTAE = 0.02; // between a normal slot and its bright twin
 export const MIN_BLACK_WHITE_LIGHTNESS = 0.5; // L difference between color0 and color15
 
 /** Chromatic ANSI slots (red, green, yellow, blue, magenta, cyan). */
 const CHROMATIC = [1, 2, 3, 4, 5, 6];
+
+/**
+ * Required perceptual separation scales with how much chroma a pair actually
+ * carries. Demanding a flat 0.06 ΔE from two near-neutral colors is physically
+ * impossible: at C≈0.05 even a 42° hue difference lands ~0.036 apart. So the
+ * requirement is capped by the pair's own chroma — vivid pairs must clear the
+ * full 0.06, muted pairs clear a floor that still catches "same color twice".
+ */
+export function separationThreshold(a: Oklch, b: Oklch): number {
+  const scaled = Math.min(a.C, b.C) * CHROMA_SEP_FACTOR;
+  return Math.max(MIN_CHROMA_SEP_FLOOR, Math.min(MIN_HUE_SEPARATION_DELTAE, scaled));
+}
 
 export function validatePalette(palette: RawPalette): ValidationResult {
   const issues: ValidationIssue[] = [];
@@ -104,10 +118,11 @@ function validateScheme(scheme: Scheme, which: 'light' | 'dark', issues: Validat
       const ia = CHROMATIC[a]!;
       const ib = CHROMATIC[b]!;
       const d = deltaEOk(lch[ia]!, lch[ib]!);
-      if (d < MIN_HUE_SEPARATION_DELTAE) {
+      const need = separationThreshold(lch[ia]!, lch[ib]!);
+      if (d < need) {
         add(
           'spacing',
-          `color${ia} and color${ib} are perceptually too close (ΔE ${d.toFixed(3)} < ${MIN_HUE_SEPARATION_DELTAE})`,
+          `color${ia} and color${ib} are perceptually too close (ΔE ${d.toFixed(3)} < ${need.toFixed(3)})`,
           false,
           `color${ia}`
         );
