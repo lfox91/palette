@@ -4,6 +4,14 @@
   "description": "Sun-aware Ptyxis palette generator and scheduler — generates perceptually-tuned terminal color schemes and cycles them by position relative to the sun.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lfox91/palette.git"
+  },
+  "homepage": "https://github.com/lfox91/palette#readme",
+  "bugs": {
+    "url": "https://github.com/lfox91/palette/issues"
+  },
   "bin": {
     "palette": "./dist/cli.js"
   },
