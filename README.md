@@ -174,8 +174,7 @@ sinks. They are simply opt-in, and the project distinguishes:
 - **Community** — everyone else. Never enabled by default; loaded only when you
   explicitly opt in, and run out-of-process.
 
-Pins and content hashes live in `palette.lock.json`. The full model is in
-[RFC 0001](docs/rfc/0001-open-palette-benchmarking.md).
+Pins and content hashes live in `palette.lock.json`.
 
 ### Writing a reviewer plugin
 
@@ -220,9 +219,8 @@ Where an idea here has no prior art, the operator's exact prompt is recorded —
 verbatim, with the harness, model, date, and commit that produced it — and
 hash-pinned so it cannot be silently rewritten. We call this a **proof of
 thought**: the citation is not "someone once said this" but "here is the exact
-prompt, and here is its hash." Source of truth:
-[`docs/citations/proof-of-thought.json`](docs/citations/proof-of-thought.json);
-rendered: [`docs/citations/proof-of-thought.md`](docs/citations/proof-of-thought.md).
+prompt, and here is its hash." The ledger is kept locally rather than published
+with the source.
 
 ## Benchmarking (experimental)
 
@@ -232,7 +230,7 @@ on a real, constrained task: hold the candidates fixed, vary the reviewer, and
 measure approval rate, tweak magnitude, and **scope conformance** — whether the
 reviewer stayed on the task it was given instead of drifting, inventing, or
 smuggling in unrelated content. Runs can be named and bookmarked by company or
-model. See [RFC 0001](docs/rfc/0001-open-palette-benchmarking.md).
+model.
 
 ## Development
 

@@ -7,8 +7,8 @@
  * the primary evidence of original reasoning. If the prompt changes, the hash
  * changes, and the claim of authorship is auditable.
  *
- * Entries live in a ledger (`docs/citations/proof-of-thought.json`) and render to
- * markdown (`bun run proofs`). An RFC cites the rendered entries.
+ * Entries live in a ledger (`.tfw/docs/citations/proof-of-thought.json`, kept
+ * out of the published tree) and render to markdown (`bun run proofs`).
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
