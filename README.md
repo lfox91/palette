@@ -241,7 +241,6 @@ bun test                   # unit tests
 bun run check              # biome lint + format
 bun run typecheck          # tsc --noEmit
 bun run build:binary       # compiled baseline binary → dist/palette
-bun run scan:secrets       # scan the tree and git history for secrets
 bun run audit              # dependency vulnerability audit
 ```
 

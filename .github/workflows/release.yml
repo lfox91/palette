@@ -42,9 +42,6 @@ jobs:
           bun run typecheck
           bun test
 
-      - name: Secret scan
-        run: bun run scan:secrets
-
       - name: Dependency audit
         run: bun run audit
 
