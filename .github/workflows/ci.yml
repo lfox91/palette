@@ -40,3 +40,13 @@ jobs:
 
       - name: Build
         run: bun run build
+
+  security-semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep Open Source Engine
+        run: |
+          pip install --quiet semgrep
+          semgrep scan --config=auto --error --exclude node_modules --exclude dist
