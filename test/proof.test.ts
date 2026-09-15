@@ -20,6 +20,17 @@ describe('proof of thought', () => {
     expect(proofHash({ ...entry, prompt: 'different' })).not.toBe(h);
   });
 
+  test('hash pins the claim, not the mutable commit location', () => {
+    const h = proofHash(entry);
+    // A history rewrite changes the commit id without changing the claim, so
+    // the authorship hash must not move. See the note atop src/proof.ts.
+    expect(proofHash({ ...entry, commit: 'deadbeef' })).toBe(h);
+    expect(proofHash({ ...entry, date: '2026-01-01' })).not.toBe(h);
+    expect(proofHash({ ...entry, harness: 'other' })).not.toBe(h);
+    expect(proofHash({ ...entry, model: 'other' })).not.toBe(h);
+    expect(proofHash({ ...entry, priorArt: 'found one' })).not.toBe(h);
+  });
+
   test('renders metadata and the verbatim prompt', () => {
     const md = renderProof(entry);
     expect(md).toContain('**Harness:** opencode');

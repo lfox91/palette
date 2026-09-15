@@ -3,9 +3,16 @@
  *
  * When a contribution cannot be traced to existing literature, the operator's
  * exact prompt is recorded alongside the harness, model, date, and commit that
- * produced it, and the whole entry is hash-pinned. This is not a footnote: it is
- * the primary evidence of original reasoning. If the prompt changes, the hash
+ * produced it, and the claim is hash-pinned. This is not a footnote: it is the
+ * primary evidence of original reasoning. If the prompt changes, the hash
  * changes, and the claim of authorship is auditable.
+ *
+ * The integrity hash covers the claim itself (prompt, harness, model, date,
+ * prior art) and deliberately NOT the `commit` field. A commit id is a mutable
+ * locator: any history rewrite changes it without the claim changing at all.
+ * Including it would make the hash unstable for reasons unrelated to authorship,
+ * defeating the point of pinning. `commit` records where the idea landed; the
+ * hash records what was claimed.
  *
  * Entries live in a ledger (`.tfw/docs/citations/proof-of-thought.json`, kept
  * out of the published tree) and render to markdown (`bun run proofs`).
@@ -26,7 +33,10 @@ export interface ProofOfThought {
   model: string;
   /** ISO 8601 date the prompt was made */
   date: string;
-  /** commit the idea is realized in, or HEAD at capture */
+  /**
+   * Commit the idea is realized in, or HEAD at capture. A mutable locator, not
+   * part of the integrity hash — see the note at the top of this file.
+   */
   commit: string;
   /** "none found" plus where it was searched, or a reference list */
   priorArt: string;
@@ -39,9 +49,14 @@ export interface ProofLedger {
   entries: ProofOfThought[];
 }
 
+/**
+ * Hash the claim, not its location. Covers prompt, harness, model, date, and
+ * prior art; excludes `commit` so a history rewrite cannot invalidate a claim
+ * whose wording never changed.
+ */
 export function proofHash(entry: ProofOfThought): string {
   return hashText(
-    [entry.prompt, entry.harness, entry.model, entry.date, entry.commit, entry.priorArt].join('\n')
+    [entry.prompt, entry.harness, entry.model, entry.date, entry.priorArt].join('\n')
   );
 }
 
