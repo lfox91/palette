@@ -63,21 +63,23 @@ describe('generatePalette', () => {
     for (const period of ['morning', 'lunch', 'afternoon', 'evening', 'owl', 'custom']) {
       const { validation } = await generatePalette(
         { energy: 'med', warmth: 'neutral', contrast: 'balanced' },
-        { period }
+        { period, seed: 1 }
       );
       expect(validation.clean).toBe(true);
     }
   });
 
   test('the whole mood grid is clean, not merely fatal-free', async () => {
+    let seed = 1;
     for (const energy of ['low', 'med', 'high'] as const) {
       for (const warmth of ['cool', 'neutral', 'warm'] as const) {
         for (const contrast of ['soft', 'balanced', 'vivid'] as const) {
           const { validation } = await generatePalette(
             { energy, warmth, contrast },
-            { period: 'afternoon' }
+            { period: 'afternoon', seed }
           );
           expect(validation.clean).toBe(true);
+          seed += 1;
         }
       }
     }
