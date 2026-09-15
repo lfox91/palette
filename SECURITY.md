@@ -41,4 +41,6 @@ review API.
 - Remote API keys are read from environment variables, never stored on disk.
 - Community plugins are pinned by version and content hash and run
   out-of-process.
-- Dependency and secret scans run in CI (`bun audit`, `bun run scan:secrets`).
+- Dependency and secret scans run in CI: `bun audit` for dependencies, and
+  [gitleaks](https://github.com/gitleaks/gitleaks) (official action) over the full
+  git history for leaked keys and high-entropy secrets.
