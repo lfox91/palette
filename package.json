@@ -37,7 +37,7 @@
     "@clack/prompts": "^0.11.0"
   },
   "optionalDependencies": {
-    "node-llama-cpp": "^3.14.5"
+    "node-llama-cpp": "^3.20.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.7",
