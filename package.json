@@ -42,7 +42,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.7",
     "@types/bun": "latest",
-    "typescript": "^5.7.0"
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "tar": "^7.5.22"
